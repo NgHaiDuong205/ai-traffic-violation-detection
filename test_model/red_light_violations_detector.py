@@ -16,15 +16,12 @@ class RedLightViolationDetector:
         
         # Danh sách xe vi phạm
         self.violations = []
-        self.violated_ids = set()
+        self.violated_ids = set()  
         
-        # Tọa độ vạch kẻ (line) - sẽ được set qua GUI hoặc config
-        # Định nghĩa bằng 2 điểm: (x1, y1) -> (x2, y2)
+        # Tọa độ vạch kẻ
         self.line_start = None
         self.line_end = None
         
-        # Trạng thái đèn: "red", "green", "yellow"
-        self.traffic_light_state = "red"
     
     def set_detection_line(self, start_point, end_point):
         """Đặt tọa độ vạch kẻ"""
@@ -34,7 +31,6 @@ class RedLightViolationDetector:
     def get_vehicle_center(self, bbox):
         """Lấy tâm (hoặc điểm dưới cùng) của bounding box"""
         x1, y1, x2, y2 = bbox
-        # Dùng điểm giữa cạnh dưới của bbox (vị trí bánh xe)
         center_x = (x1 + x2) // 2
         bottom_y = y2
         return (center_x, bottom_y)
@@ -48,12 +44,10 @@ class RedLightViolationDetector:
         x1, y1 = self.line_start
         x2, y2 = self.line_end
         
-        # Cross product để xác định vị trí tương đối
-        # (x2-x1)(y-y1) - (y2-y1)(x-x1)
         cross = (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)
         return cross
     
-    def check_line_crossing(self, vehicle_id, bbox, frame_id, class_id):
+    def check_line_crossing(self, vehicle_id, bbox, frame_id, class_id, traffic_light_state):
         """
         Kiểm tra xe có vượt vạch không
         Trả về: True nếu vừa vượt vạch (vi phạm), False nếu không
@@ -76,7 +70,7 @@ class RedLightViolationDetector:
                 state["crossed"] = True
                 
                 # Nếu đèn đỏ -> vi phạm
-                if self.traffic_light_state == "red":
+                if traffic_light_state == "red":
                     violation_info = {
                         "vehicle_id": vehicle_id,
                         "frame_id": frame_id,
@@ -90,13 +84,13 @@ class RedLightViolationDetector:
         
         return False
     
-    def draw_detection_zone(self, frame):
+    def draw_detection_zone(self, frame, traffic_light_state):
         """Vẽ vạch kẻ và vùng phát hiện lên frame"""
         if self.line_start is None or self.line_end is None:
             return frame
         
         # Vẽ vạch kẻ chính
-        color = (0, 0, 255) if self.traffic_light_state == "red" else (255, 255, 255)
+        color = (0, 0, 255) if traffic_light_state == "red" else (255, 255, 255)
         cv2.line(frame, self.line_start, self.line_end, color, 3)
         
         # Vẽ vùng "trước vạch" và "sau vạch" (optional - dùng polygon)

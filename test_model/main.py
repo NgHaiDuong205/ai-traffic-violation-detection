@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from red_light_violations_detector import RedLightViolationDetector
 from red_light_violations_detector import LineDrawer
+from traffic_light_simulation import traffic_light
 
 
 
@@ -29,6 +30,9 @@ def main():
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     
     frame_id = 0
+
+    # Khởi tạo mô phỏng đèn giao thông
+    traffic_light_sim = traffic_light()
     
     while cap.isOpened():
         ret, frame = cap.read()
@@ -38,6 +42,9 @@ def main():
         # YOLO tracking
         results = model.track(frame, persist=True, classes=[0, 1, 2, 3, 4]) 
         
+        # Cập nhật trạng thái đèn giao thông
+        traffic_light_state, time_remaining = traffic_light_sim.get_current_light()
+
         if results[0].boxes.id is not None:
             boxes = results[0].boxes.xyxy.cpu().numpy()
             track_ids = results[0].boxes.id.cpu().numpy().astype(int)
@@ -51,7 +58,8 @@ def main():
                     vehicle_id=track_id,
                     bbox=(x1, y1, x2, y2),
                     frame_id=frame_id,
-                    class_id=class_id   
+                    class_id=class_id,
+                    traffic_light_state=traffic_light_state
                 )
                 
                 # Vẽ bbox
@@ -65,12 +73,12 @@ def main():
                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
         
         # Vẽ vạch kẻ
-        detector.draw_detection_zone(frame)
+        detector.draw_detection_zone(frame, traffic_light_state)
         
         # Hiển thị số vi phạm
         cv2.putText(frame, f"Violations: {len(detector.violations)}", 
                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        cv2.putText(frame, f'state light: {detector.traffic_light_state}',
+        cv2.putText(frame, f'state light: {traffic_light_state} {time_remaining}s',
                    (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         
         counter = Counter(v["type"] for v in detector.violations)
@@ -98,4 +106,4 @@ def main():
         print(f"  - Vehicle ID {v['vehicle_id']} tại frame {v['frame_id']}")
 
 if __name__ == "__main__":
-    main()
+    main() 
