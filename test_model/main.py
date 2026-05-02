@@ -10,28 +10,22 @@ from traffic_light_simulation import traffic_light
 
 
 def main():
-    # Load model
     model = YOLO("best_v6.pt")
     
-    # Khởi tạo detector
     detector = RedLightViolationDetector()
     
-    # Mở video
     cap = cv2.VideoCapture("D:\\cntt\\Năm_3\\Thuc_Tap_Co_So\\ảnh_test\\video_stopline_2.mp4")
     
-    # Lấy frame đầu tiên để vẽ vạch
     ret, first_frame = cap.read()
     if ret:
         drawer = LineDrawer(first_frame)
         line_start, line_end = drawer.draw()
         detector.set_detection_line(line_start, line_end)
     
-    # Reset video
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     
     frame_id = 0
 
-    # Khởi tạo mô phỏng đèn giao thông
     traffic_light_sim = traffic_light()
     
     while cap.isOpened():
@@ -39,10 +33,8 @@ def main():
         if not ret:
             break
         
-        # YOLO tracking
         results = model.track(frame, persist=True, classes=[0, 1, 2, 3, 4]) 
         
-        # Cập nhật trạng thái đèn giao thông
         traffic_light_state, time_remaining = traffic_light_sim.get_current_light()
 
         if results[0].boxes.id is not None:
@@ -53,7 +45,6 @@ def main():
             for bbox, track_id, class_id in zip(boxes, track_ids, classes_id):
                 x1, y1, x2, y2 = map(int, bbox)
                 
-                # Kiểm tra vi phạm
                 is_violation = detector.check_line_crossing(
                     vehicle_id=track_id,
                     bbox=(x1, y1, x2, y2),
@@ -62,7 +53,6 @@ def main():
                     traffic_light_state=traffic_light_state
                 )
                 
-                # Vẽ bbox
                 color = (0, 0, 255) if track_id in detector.violated_ids else (0, 255, 0)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(frame, f"ID:{track_id}", (x1, y1-10), 
@@ -72,10 +62,8 @@ def main():
                     cv2.putText(frame, "VIOLATION!", (x1, y2+20), 
                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
         
-        # Vẽ vạch kẻ
         detector.draw_detection_zone(frame, traffic_light_state)
         
-        # Hiển thị số vi phạm
         cv2.putText(frame, f"Violations: {len(detector.violations)}", 
                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.putText(frame, f'state light: {traffic_light_state} {time_remaining}s',
@@ -100,7 +88,6 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
     
-    # In danh sách vi phạm
     print(f"\nTổng số vi phạm: {len(detector.violations)}")
     for v in detector.violations:
         print(f"  - Vehicle ID {v['vehicle_id']} tại frame {v['frame_id']}")
