@@ -2,7 +2,7 @@ import React from 'react';
 
 function ViolationPanel({ logs }) {
   return (
-    <section className="panel left-panel">
+    <section className="panel violations-panel">
       <div className="panel-header">
         <h2>
           <span className="panel-icon"></span>

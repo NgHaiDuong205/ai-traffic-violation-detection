@@ -1,0 +1,28 @@
+# IDE / editor (keep locally, do not commit)
+.idea/
+**/.idea/
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+*.log
+Untitled*
+
+# Runtime uploads / outputs
+backend/temp_videos/*
+!backend/temp_videos/.gitkeep
+
+# Large datasets (keep locally, not in git)
+data/*.zip
+data/**/*.zip
+ai_modules/helmet_detect/training/dataset/
+ai_modules/helmet_detect/training/data.yaml
+ai_modules/helmet_detect/training/runs/
+ai_modules/vehicle_detect/training/dataset/
+ai_modules/vehicle_detect/training/data.yaml
+ai_modules/vehicle_detect/training/runs/
+ai_modules/vehicle_detect/training/work/
+
+# Model weights: ignore experimental checkpoints, keep production weights public
+*.pt
+!ai_modules/helmet_detect/weights/best3.pt
+!ai_modules/vehicle_detect/weights/best_v6.pt

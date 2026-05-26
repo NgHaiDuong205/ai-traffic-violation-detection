@@ -3,6 +3,7 @@ import './App.css';
 import ViolationPanel from './components/ViolationPanel';
 import DetectionViewer from './components/DetectionViewer';
 import UploadSection from './components/UploadSection';
+import LineDrawerOverlay from './components/LineDrawerOverlay';
 
 const getTimeString = () => {
   return new Date().toLocaleTimeString([], {
@@ -18,8 +19,56 @@ function App() {
   const [mediaFile, setMediaFile] = useState(null);
   const [mediaType, setMediaType] = useState(null);
   const [isDetecting, setIsDetecting] = useState(false);
+  const [isDrawingLine, setIsDrawingLine] = useState(false);
+  const [firstFrame, setFirstFrame] = useState(null);
+  const [videoFilename, setVideoFilename] = useState(null);
+  const [stats, setStats] = useState({ total_violations: 0, vehicle_counts: {} });
+  const [progress, setProgress] = useState(0);
+  const [detectionResult, setDetectionResult] = useState(null);
+  const [lineCoords, setLineCoords] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
   
   const wsRef = useRef(null);
+
+  const { combinedLogs, dynamicStats } = React.useMemo(() => {
+      let videoLogs = [];
+      let currentStats = {
+          total_violations: 0,
+          no_helmet_count: 0,
+          vehicle_counts: {}
+      };
+
+      if (detectionResult && detectionResult.violations) {
+          const filteredViolations = detectionResult.violations.filter(v => v.time_sec <= currentTime);
+          
+          currentStats.total_violations = filteredViolations.length;
+          filteredViolations.forEach(v => {
+              if (v.vehicle_type === "no_helmet") {
+                  currentStats.no_helmet_count++;
+              } else if (v.vehicle_type) {
+                  currentStats.vehicle_counts[v.vehicle_type] = (currentStats.vehicle_counts[v.vehicle_type] || 0) + 1;
+              }
+          });
+
+          videoLogs = filteredViolations.map((v, idx) => {
+                 const m = Math.floor(v.time_sec / 60);
+                 const s = Math.floor(v.time_sec % 60);
+                 const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                 return {
+                     id: `v-${idx}`,
+                     severity: v.severity,
+                     icon: v.icon,
+                     title: v.title,
+                     time: timeStr, 
+                     source: v.source
+                 };
+             }).reverse();
+      }
+      return {
+          combinedLogs: [...videoLogs, ...logs].slice(0, 50),
+          dynamicStats: currentStats
+      };
+  }, [logs, detectionResult, currentTime]);
 
   useEffect(() => {
     return () => {
@@ -27,25 +76,76 @@ function App() {
     };
   }, []);
 
+  const startDetection = useCallback((lineCoords = null) => {
+    if (!videoFilename) return;
+
+    setIsDetecting(true);
+    setIsDrawingLine(false);
+
+    if (wsRef.current) wsRef.current.close();
+    
+    let url = `ws://localhost:8000/api/ws/video/${videoFilename}`;
+    if (lineCoords) {
+      url += `?line_coords=${encodeURIComponent(JSON.stringify(lineCoords))}`;
+    }
+
+    const ws = new WebSocket(url);
+    wsRef.current = ws;
+    
+     ws.onmessage = (event) => {
+       const msg = JSON.parse(event.data);
+       if (msg.error) {
+          console.error(msg.error);
+          setIsDetecting(false);
+          setProgress(0);
+       } else if (msg.status === 'processing') {
+          setProgress(msg.progress);
+       } else if (msg.status === 'completed') {
+          setDetectionResult(msg.result);
+          
+          if (msg.result.stats) {
+             setStats(msg.result.stats);
+          }
+          
+          setIsDetecting(false);
+          setProgress(0);
+          ws.close();
+       }
+    };
+    
+    ws.onclose = () => {
+       setIsDetecting(false);
+    };
+    
+    ws.onerror = (err) => {
+        console.error("WS error:", err);
+        setIsDetecting(false);
+    };
+  }, [videoFilename]);
+
   const handleFileUpload = useCallback(async (file) => {
     if (!file) return;
     const type = file.type.startsWith('video/') ? 'video' : 'image';
     const localUrl = URL.createObjectURL(file);
+    
     setMediaFile(localUrl);
     setMediaType(type);
-    setIsDetecting(true);
-
+    setDetectionResult(null);
+    setLineCoords(null);
+    setProgress(0);
+    setStats({ total_violations: 0, vehicle_counts: {} });
     setLogs([
       {
         id: Date.now(),
         severity: 'info',
-        title: `Đang phân tích: ${file.name}`,
+        title: `Đang tải lên: ${file.name}`,
         time: getTimeString(),
         source: 'Hệ thống',
       }
     ]);
 
     if (type === 'image') {
+      setIsDetecting(true);
       try {
         const formData = new FormData();
         formData.append('file', file);
@@ -64,7 +164,7 @@ function App() {
             const newLogs = data.violations.map((v, idx) => ({
               id: Date.now() + idx + 1,
               severity: v.severity,
-              icon: v.icon,
+              icon: v.icon || '⚠️',
               title: v.title,
               time: getTimeString(),
               source: v.source
@@ -74,14 +174,12 @@ function App() {
              setLogs((prev) => [{
               id: Date.now() + 999,
               severity: 'info',
-              icon: '',
-              title: 'Không phát hiện vi phạm mũ bảo hiểm',
+              icon: '✅',
+              title: 'Không phát hiện vi phạm',
               time: getTimeString(),
-              source: 'YOLOv8 AI'
+              source: 'AI'
             }, ...prev]);
           }
-        } else {
-          console.error(data.error);
         }
       } catch (err) {
         console.error("API error:", err);
@@ -89,72 +187,39 @@ function App() {
         setIsDetecting(false);
       }
     } else {
+      // Video Flow
       try {
         const formData = new FormData();
         formData.append('file', file);
         
-        const response = await fetch('http://localhost:8000/api/upload_video', {
+        const uploadRes = await fetch('http://localhost:8000/api/upload_video', {
           method: 'POST',
           body: formData,
         });
         
-        const data = await response.json();
+        const uploadData = await uploadRes.json();
         
-        if (data.success) {
-           const filename = data.filename;
+        if (uploadData.success) {
+           const filename = uploadData.filename;
+           setVideoFilename(filename);
            
-           if (wsRef.current) wsRef.current.close();
+           // Fetch first frame for line drawing
+           const frameRes = await fetch(`http://localhost:8000/api/video_first_frame/${filename}`);
+           const frameData = await frameRes.json();
            
-           const ws = new WebSocket(`ws://localhost:8000/api/ws/video/${filename}`);
-           wsRef.current = ws;
-           
-           ws.onmessage = (event) => {
-              const msg = JSON.parse(event.data);
-              if (msg.error) {
-                 console.error(msg.error);
-                 setIsDetecting(false);
-              } else if (msg.status === 'completed') {
-                 setIsDetecting(false);
-                 ws.close();
-              } else if (msg.frame) {
-                 setMediaType('image'); 
-                 setMediaFile(msg.frame); 
-                 
-                 setIsDetecting(false);
-                 
-                 if (msg.violations && msg.violations.length > 0) {
-                     const newLogs = msg.violations.map((v, idx) => ({
-                          id: Date.now() + idx + Math.random(),
-                          severity: v.severity,
-                          icon: v.icon,
-                          title: v.title,
-                          time: getTimeString(),
-                          source: v.source
-                     }));
-                     setLogs((prev) => [...newLogs, ...prev].slice(0, 50)); 
-                 }
-              }
-           };
-           
-           ws.onclose = () => {
-              setIsDetecting(false);
-           };
-           
-           ws.onerror = (err) => {
-               console.error("WS error:", err);
-               setIsDetecting(false);
-           };
-           
-        } else {
-          console.error("Video upload failed:", data.error);
-          setIsDetecting(false);
+           if (frameData.frame) {
+              setFirstFrame(frameData.frame);
+              setIsDrawingLine(true);
+           } else {
+              // Fallback to direct detection if frame fetch fails
+              startDetection();
+           }
         }
       } catch (err) {
-        console.error("Video API error:", err);
-        setIsDetecting(false);
+        console.error("Video error:", err);
       }
     }
-  }, []);
+  }, [startDetection]);
 
   return (
     <div className="app-container">
@@ -164,20 +229,41 @@ function App() {
           <span className="header-icon">🚦</span>
           SmartTraffic AI
         </h1>
-        <span className="status-badge">
-          <span className="status-dot"></span>
-          Hệ thống hoạt động
-        </span>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <span className="status-badge">
+            <span className="status-dot"></span>
+            Hệ thống hoạt động
+            </span>
+        </div>
       </header>
 
-      {/* Main: Left panel + Right panel */}
+      {/* Main: Left violations panel + Right viewer panel */}
       <main className="main-content">
-        <ViolationPanel logs={logs} />
+        <ViolationPanel logs={combinedLogs} />
         <DetectionViewer
           mediaFile={mediaFile}
           mediaType={mediaType}
           isDetecting={isDetecting}
-        />
+          progress={progress}
+          stats={mediaType === 'video' ? dynamicStats : stats}
+          detectionResult={detectionResult}
+          lineCoords={lineCoords}
+          onTimeUpdate={(time) => setCurrentTime(time)}
+        >
+          {isDrawingLine && (
+            <LineDrawerOverlay 
+              image={firstFrame} 
+              onConfirm={(coords) => {
+                setLineCoords(coords);
+                startDetection(coords);
+              }}
+              onCancel={() => {
+                setIsDrawingLine(false);
+                // Do NOT start detection if cancelled. Must draw 2 points.
+              }}
+            />
+          )}
+        </DetectionViewer>
       </main>
 
       {/* Bottom: Upload */}
