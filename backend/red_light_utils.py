@@ -74,9 +74,9 @@ class RedLightViolationDetector:
         return frame
 
 class TrafficLightSimulation:
-    def __init__(self):
+    def __init__(self, green_duration=10, red_duration=10):
         self.states = ["green", "red"]
-        self.durations = [10, 10]
+        self.durations = [green_duration, red_duration]
         self.current_state_idx = 0
         self.start_time = 0.0
 

@@ -35,31 +35,35 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
       return () => window.removeEventListener('resize', updateTransform);
   }, [updateTransform]);
 
-  useEffect(() => {
-    let animationFrameId;
-    const updateOverlay = () => {
-      if (videoRef.current && detectionResult && detectionResult.frames) {
-         const currentTime = videoRef.current.currentTime;
-         let closest = detectionResult.frames[0];
-         let minDiff = Infinity;
-         for (let frame of detectionResult.frames) {
-             const diff = Math.abs(frame.time_sec - currentTime);
-             if (diff < minDiff) {
-                 minDiff = diff;
-                 closest = frame;
-             } else if (diff > minDiff) {
-                 break;
-             }
-         }
-         setCurrentFrameData(closest);
+  const findClosestFrame = useCallback((frames, currentTime) => {
+    if (!frames?.length) return null;
+    let lo = 0;
+    let hi = frames.length - 1;
+    let closest = frames[0];
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const diff = frames[mid].time_sec - currentTime;
+      if (Math.abs(diff) < Math.abs(closest.time_sec - currentTime)) {
+        closest = frames[mid];
       }
-      animationFrameId = requestAnimationFrame(updateOverlay);
-    };
-    if (detectionResult && mediaType === 'video') {
-        updateOverlay();
+      if (diff < 0) lo = mid + 1;
+      else hi = mid - 1;
     }
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [detectionResult, mediaType]);
+    return closest;
+  }, []);
+
+  const updateOverlayAtTime = useCallback((currentTime) => {
+    const closest = findClosestFrame(detectionResult?.frames, currentTime);
+    setCurrentFrameData(closest);
+  }, [detectionResult, findClosestFrame]);
+
+  useEffect(() => {
+    if (mediaType !== 'video' || !detectionResult?.frames?.length) {
+      setCurrentFrameData(null);
+      return;
+    }
+    updateOverlayAtTime(videoRef.current?.currentTime || 0);
+  }, [detectionResult, mediaType, updateOverlayAtTime]);
 
   const trafficLight = currentFrameData 
       ? { state: currentFrameData.light_state, time: currentFrameData.time_left } 
@@ -130,10 +134,12 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
                 autoPlay
                 muted
                 onLoadedMetadata={(e) => {
-                   e.target.playbackRate = 1.0;
+                   e.target.playbackRate = 0.5; // Giảm tốc độ phát chậm lại
                    updateTransform();
+                   updateOverlayAtTime(e.target.currentTime || 0);
                 }}
                 onTimeUpdate={(e) => {
+                   updateOverlayAtTime(e.target.currentTime);
                    if (onTimeUpdate) onTimeUpdate(e.target.currentTime);
                 }}
                 onEnded={() => {
@@ -174,8 +180,10 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
                   const width = (box.bbox[2] - box.bbox[0]) * overlayTransform.scaleX;
                   const height = (box.bbox[3] - box.bbox[1]) * overlayTransform.scaleY;
                   
-                  const isRed = box.is_violation;
-                  const color = isRed ? '#ef4444' : '#22c55e';
+                  let color = '#22c55e'; // Xanh lá mặc định cho xe/mũ hợp lệ
+                  if (box.is_violation) {
+                    color = box.type === 'helmet' ? '#3b82f6' : '#ef4444'; // Xanh nước biển cho Không MBH, Đỏ cho Vượt đèn đỏ
+                  }
                   
                   return (
                     <React.Fragment key={`${box.id}-${idx}`}>
