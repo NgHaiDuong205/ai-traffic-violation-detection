@@ -14,6 +14,7 @@ function App() {
     mediaFile,
     mediaType,
     isDetecting,
+    isProcessing, // ← Nhận state mới
     isDrawingLine,
     firstFrame,
     stats,
@@ -54,6 +55,7 @@ function App() {
           mediaFile={mediaFile}
           mediaType={mediaType}
           isDetecting={isDetecting}
+          isProcessing={isProcessing} // ← Truyền state mới
           progress={progress}
           stats={mediaType === 'video' ? dynamicStats : stats}
           detectionResult={detectionResult}

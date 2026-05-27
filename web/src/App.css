@@ -498,3 +498,78 @@
   color: #fff;
   text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
+
+/* ===== Processing Indicator (Video Background) ===== */
+.processing-indicator {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  min-width: 220px;
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.processing-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.processing-icon {
+  font-size: 1rem;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.processing-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #a855f7);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.progress-percentage {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  display: block;
+  text-align: right;
+}
