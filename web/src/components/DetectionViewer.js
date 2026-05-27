@@ -1,10 +1,23 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 
-function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, detectionResult, lineCoords, onTimeUpdate, children }) {
+function DetectionViewer({ mediaFile, mediaType, isDetecting, isProcessing, progress, stats, detectionResult, lineCoords, onTimeUpdate, children }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const [currentFrameData, setCurrentFrameData] = useState(null);
   const [overlayTransform, setOverlayTransform] = useState({ scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 });
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
+
+  // ✅ Debug states
+  useEffect(() => {
+    console.log('📺 DetectionViewer states:', {
+      mediaFile: mediaFile ? 'exists' : 'null',
+      mediaType,
+      isDetecting,
+      isProcessing,
+      hasChildren: !!children
+    });
+  }, [mediaFile, mediaType, isDetecting, isProcessing, children]);
 
   const updateTransform = useCallback(() => {
       if (!videoRef.current || !containerRef.current) return;
@@ -65,6 +78,12 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
     updateOverlayAtTime(videoRef.current?.currentTime || 0);
   }, [detectionResult, mediaType, updateOverlayAtTime]);
 
+  const maxProcessedTime = detectionResult?.frames?.length 
+      ? detectionResult.frames[detectionResult.frames.length - 1].time_sec 
+      : 0;
+
+  const isWaitingForAI = isProcessing && mediaType === 'video' && (currentPlaybackTime > maxProcessedTime + 0.5);
+
   const trafficLight = currentFrameData 
       ? { state: currentFrameData.light_state, time: currentFrameData.time_left } 
       : null;
@@ -78,6 +97,32 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
         </h2>
         
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            {isProcessing && maxProcessedTime > 0 && (
+               <div style={{
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: '0.6rem',
+                 background: 'rgba(59, 130, 246, 0.15)',
+                 padding: '0.4rem 1rem',
+                 borderRadius: '8px',
+                 border: '1px solid rgba(59, 130, 246, 0.35)',
+                 boxShadow: '0 0 10px rgba(59, 130, 246, 0.1)'
+               }}>
+                 <span className="status-dot" style={{ backgroundColor: '#60a5fa', animation: 'blink 1.5s infinite', margin: 0 }}></span>
+                 <span style={{ fontSize: '0.75rem', color: '#93c5fd', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                   AI đã xử lý
+                 </span>
+                 <span style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.1rem', color: 'white' }}>
+                   {maxProcessedTime.toFixed(1)}s
+                 </span>
+                 {videoDuration > 0 && (
+                   <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                     / {videoDuration.toFixed(1)}s
+                   </span>
+                 )}
+               </div>
+            )}
+
             {trafficLight && trafficLight.state !== 'unknown' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.4)', padding: '0.4rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <span style={{ fontSize: '0.85rem', color: '#ccc', fontWeight: '600' }}>TÍN HIỆU:</span>
@@ -104,12 +149,12 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
                  
                  {Object.keys(stats.vehicle_counts).length > 0 && (
                    <div style={{ display: 'flex', gap: '0.75rem', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '1rem' }}>
-                     {Object.entries(stats.vehicle_counts).map(([type, count]) => (
-                        <div key={type} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.7rem', color: '#aaa', textTransform: 'capitalize' }}>{type}</span>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'white' }}>{count}</span>
-                        </div>
-                     ))}
+                      {Object.entries(stats.vehicle_counts).map(([type, count]) => (
+                         <div key={type} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                           <span style={{ fontSize: '0.7rem', color: '#aaa', textTransform: 'capitalize' }}>{type}</span>
+                           <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'white' }}>{count}</span>
+                         </div>
+                      ))}
                    </div>
                  )}
                </div>
@@ -135,10 +180,12 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
                 muted
                 onLoadedMetadata={(e) => {
                    e.target.playbackRate = 0.5; // Giảm tốc độ phát chậm lại
+                   setVideoDuration(e.target.duration || 0);
                    updateTransform();
                    updateOverlayAtTime(e.target.currentTime || 0);
                 }}
                 onTimeUpdate={(e) => {
+                   setCurrentPlaybackTime(e.target.currentTime);
                    updateOverlayAtTime(e.target.currentTime);
                    if (onTimeUpdate) onTimeUpdate(e.target.currentTime);
                 }}
@@ -185,13 +232,17 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
                     color = box.type === 'helmet' ? '#3b82f6' : '#ef4444'; // Xanh nước biển cho Không MBH, Đỏ cho Vượt đèn đỏ
                   }
                   
+                  // Use combination of type and id as the key for stable elements, enabling smooth transition
+                  const uniqueKey = box.id ? `${box.type}-${box.id}` : `box-${idx}`;
+                  
                   return (
-                    <React.Fragment key={`${box.id}-${idx}`}>
+                    <React.Fragment key={uniqueKey}>
                       <div style={{
                         position: 'absolute',
                         left, top, width, height,
                         border: `2px solid ${color}`,
-                        zIndex: 10
+                        zIndex: 10,
+                        transition: 'left 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), top 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), width 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), height 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), border-color 0.2s ease',
                       }} />
                       <div style={{
                         position: 'absolute',
@@ -203,7 +254,8 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
                         padding: '2px 6px',
                         borderRadius: '4px 4px 0 0',
                         zIndex: 11,
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        transition: 'left 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), top 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), background-color 0.2s ease',
                       }}>
                         {box.class_name} #{box.id} {box.conf ? `(${Math.round(box.conf * 100)}%)` : ''}
                       </div>
@@ -215,7 +267,8 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
                             fontSize: '16px',
                             fontWeight: 'bold',
                             textShadow: '1px 1px 2px black',
-                            zIndex: 12
+                            zIndex: 12,
+                            transition: 'left 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), top 0.15s cubic-bezier(0.1, 0.8, 0.2, 1)',
                          }}>
                            VIOLATION!
                          </div>
@@ -225,22 +278,63 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, progress, stats, d
                 })}
               </div>
             )}
+
+            {/* Subtle alert overlay if user seeks past the processed AI timeline */}
+            {isWaitingForAI && (
+              <div style={{
+                position: 'absolute',
+                top: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(30, 41, 59, 0.85)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
+                color: '#fef08a',
+                padding: '0.5rem 1.2rem',
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+                zIndex: 15,
+                pointerEvents: 'none',
+                animation: 'fadeInOverlay 0.2s ease'
+              }}>
+                <span style={{ animation: 'blink 1.5s infinite' }}>⏳</span>
+                AI đang phân tích đoạn này, vui lòng đợi...
+              </div>
+            )}
           </>
         )}
-
-
 
         {/* This allows LineDrawerOverlay to be rendered inside viewer-container */}
         {children}
 
+        {/* ✅ Chỉ block UI khi đang vẽ line hoặc xử lý ảnh */}
         {isDetecting && (
           <div className="detection-overlay">
             <div className="detection-spinner"></div>
-            <p>AI đang phân tích video...</p>
+            <p>AI đang phân tích ảnh...</p>
             <div style={{ width: '60%', background: 'rgba(255,255,255,0.2)', height: '10px', borderRadius: '5px', overflow: 'hidden', marginTop: '10px' }}>
               <div style={{ width: `${progress}%`, height: '100%', background: '#3b82f6', transition: 'width 0.2s' }}></div>
             </div>
             <p style={{ fontSize: '0.8rem', marginTop: '5px' }}>{progress}% hoàn thành</p>
+          </div>
+        )}
+
+        {/* ✅ Progress indicator nhỏ ở góc khi xử lý video */}
+        {isProcessing && mediaType === 'video' && (
+          <div className="processing-indicator">
+            <div className="processing-header">
+              <span className="processing-icon">⚙️</span>
+              <span className="processing-text">Đang phân tích video</span>
+            </div>
+            <div className="progress-bar-container">
+              <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+            </div>
+            <span className="progress-percentage">{progress}%</span>
           </div>
         )}
       </div>

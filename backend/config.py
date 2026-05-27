@@ -51,7 +51,7 @@ FRAME_SKIP = int(os.getenv("FRAME_SKIP", "1"))
 # Min seconds between stored overlay frames (sparse sampling)
 FRAME_STORAGE_INTERVAL_SEC = float(os.getenv("FRAME_STORAGE_INTERVAL_SEC", "0.5"))
 # Flush stored frames to client in batches (backend does not hold entire video)
-FRAME_STREAM_BATCH_SIZE = int(os.getenv("FRAME_STREAM_BATCH_SIZE", "40"))
+FRAME_STREAM_BATCH_SIZE = int(os.getenv("FRAME_STREAM_BATCH_SIZE", "4"))
 WS_PROGRESS_FRAME_INTERVAL = int(os.getenv("WS_PROGRESS_FRAME_INTERVAL", "5"))
 WS_PROGRESS_SLEEP_SEC = float(os.getenv("WS_PROGRESS_SLEEP_SEC", "0.01"))
 
