@@ -11,6 +11,9 @@ Untitled*
 backend/temp_videos/*
 !backend/temp_videos/.gitkeep
 
+# Local dev / debugging scripts
+backend/test_ws.py
+
 # Large datasets (keep locally, not in git)
 data/*.zip
 data/**/*.zip
