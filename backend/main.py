@@ -298,10 +298,13 @@ def should_store_frame(frame_payload, last_stored_time_sec, last_light_state, ha
     return False
 
 
-async def flush_frame_batch(websocket, batch):
+async def flush_frame_batch(websocket, batch, current_violations=None):
     if not batch:
         return
-    await websocket.send_json({"status": "frame_batch", "frames": batch})
+    payload = {"status": "frame_batch", "frames": batch}
+    if current_violations is not None:
+        payload["violations"] = current_violations
+    await websocket.send_json(payload)
     batch.clear()
 
 
@@ -514,7 +517,7 @@ async def websocket_video_endpoint(websocket: WebSocket, filename: str, line_coo
 
                 if len(pending_frames) >= FRAME_STREAM_BATCH_SIZE:
                     try:
-                        await flush_frame_batch(websocket, pending_frames)
+                        await flush_frame_batch(websocket, pending_frames, current_violations=all_violations)
                     except Exception:
                         print(f"[WS] Client disconnected during processing at frame {frame_count}")
                         return

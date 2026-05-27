@@ -50,7 +50,7 @@ class RedLightViolationDetector:
         previous_side = state["last_side"]
         state["last_side"] = current_side
         
-        if previous_side == "before" and current_side == "after":
+        if previous_side is not None and previous_side != current_side:
             if not state["crossed"]:
                 state["crossed"] = True
                 if traffic_light_state == "red":
