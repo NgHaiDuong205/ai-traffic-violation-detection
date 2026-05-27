@@ -67,7 +67,7 @@ export default function useVideoDetectionBackend() {
           // ✅ Cập nhật overlay ngay khi nhận data
           setDetectionResult((prev) => ({
             frames: [...(prev?.frames || []), ...(msg.frames || [])],
-            violations: prev?.violations || [],
+            violations: msg.violations || prev?.violations || [],
           }));
         } else if (msg.status === 'completed') {
           setDetectionResult((prev) => ({

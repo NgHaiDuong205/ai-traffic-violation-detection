@@ -41,10 +41,11 @@ def is_overlapping_bbox(bbox, existing_bboxes, iou_threshold, center_distance_px
 class ViolationDeduper:
     """Track reported object IDs and recent spatial regions to suppress duplicates."""
 
-    def __init__(self, iou_threshold, time_window_sec, center_distance_px=None):
+    def __init__(self, iou_threshold, time_window_sec, center_distance_px=None, enable_spatial=True):
         self.iou_threshold = iou_threshold
         self.time_window_sec = time_window_sec
         self.center_distance_px = center_distance_px
+        self.enable_spatial = enable_spatial
         self.reported_ids = set()
         self._recent = []
 
@@ -65,7 +66,7 @@ class ViolationDeduper:
     def should_report(self, obj_id, bbox, time_sec):
         if obj_id in self.reported_ids:
             return False
-        if self.is_spatial_duplicate(bbox, time_sec):
+        if self.enable_spatial and self.is_spatial_duplicate(bbox, time_sec):
             return False
         return True
 

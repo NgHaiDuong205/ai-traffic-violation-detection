@@ -30,6 +30,7 @@ class RedLightService:
             iou_threshold=dedupe_iou_threshold,
             time_window_sec=dedupe_time_window_sec,
             center_distance_px=dedupe_center_distance_px,
+            enable_spatial=False,
         )
 
     def configure_detection_line(self, line_coords):

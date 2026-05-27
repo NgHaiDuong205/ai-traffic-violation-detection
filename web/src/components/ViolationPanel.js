@@ -1,15 +1,67 @@
 import React from 'react';
 
 function ViolationPanel({ logs }) {
+  const handleDownloadCSV = () => {
+    if (!logs || logs.length === 0) return;
+
+    const headers = ['Thời gian', 'Tiêu đề', 'Mức độ', 'Nguồn'];
+    
+    const rows = logs.map(log => {
+      // Ensure values are strings and escape quotes for CSV format
+      const time = `"${String(log.time || '').replace(/"/g, '""')}"`;
+      const title = `"${String(log.title || '').replace(/"/g, '""')}"`;
+      const severity = `"${String(log.severity || '').replace(/"/g, '""')}"`;
+      const source = `"${String(log.source || '').replace(/"/g, '""')}"`;
+      return [time, title, severity, source].join(',');
+    });
+
+    // \uFEFF is the BOM for UTF-8 to correctly display Vietnamese characters in Excel
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "danh_sach_vi_pham.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <section className="panel violations-panel">
-      <div className="panel-header">
-        <h2>
-          <span className="panel-icon"></span>
-          Ghi nhận vi phạm
-        </h2>
+      <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h2>
+            <span className="panel-icon">🚨</span>
+            Ghi nhận vi phạm
+          </h2>
+          {logs.length > 0 && (
+            <span className="log-count-badge">{logs.length}</span>
+          )}
+        </div>
+        
         {logs.length > 0 && (
-          <span className="log-count-badge">{logs.length}</span>
+          <button 
+            onClick={handleDownloadCSV}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
+          >
+            <span>📥</span> Tải CSV
+          </button>
         )}
       </div>
 
