@@ -113,7 +113,7 @@
 }
 
 /* ===== Left Panel - Violations ===== */
-.left-panel {
+.violations-panel {
   flex: 0 0 360px;
 }
 
@@ -264,7 +264,7 @@
 }
 
 /* ===== Right Panel - Viewer ===== */
-.right-panel {
+.viewer-panel {
   flex: 1;
 }
 
@@ -419,4 +419,157 @@
   color: var(--text-secondary);
   opacity: 0.5;
   margin-top: 0.25rem;
+}
+
+/* ===== Line Drawing Overlay ===== */
+.line-drawer-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+
+.line-drawer-canvas {
+  flex: 1;
+  cursor: crosshair;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.line-drawer-controls {
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.9);
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== Traffic Light UI ===== */
+/* Moved to inline flex header in DetectionViewer */
+
+.light-bulb {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.light-bulb.red { background: #ef4444; box-shadow: 0 0 20px #ef4444; }
+.light-bulb.green { background: #22c55e; box-shadow: 0 0 20px #22c55e; }
+.light-bulb.off { background: #1f2937; box-shadow: none; }
+
+.light-timer {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+/* ===== Processing Indicator (Video Background) ===== */
+.processing-indicator {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  min-width: 220px;
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.processing-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.processing-icon {
+  font-size: 1rem;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.processing-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #a855f7);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.progress-percentage {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  display: block;
+  text-align: right;
 }
