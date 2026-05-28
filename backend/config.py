@@ -47,9 +47,9 @@ HELMET_VIOLATION_SCORE_THRESHOLD = int(os.getenv("HELMET_VIOLATION_SCORE_THRESHO
 HELMET_VIOLATION_SCORE_MAX = int(os.getenv("HELMET_VIOLATION_SCORE_MAX", "30"))
 
 # --- Video processing ---
-FRAME_SKIP = int(os.getenv("FRAME_SKIP", "1"))
+FRAME_SKIP = int(os.getenv("FRAME_SKIP", "2"))
 # Min seconds between stored overlay frames (sparse sampling)
-FRAME_STORAGE_INTERVAL_SEC = float(os.getenv("FRAME_STORAGE_INTERVAL_SEC", "0.5"))
+FRAME_STORAGE_INTERVAL_SEC = float(os.getenv("FRAME_STORAGE_INTERVAL_SEC", "0.0"))
 # Flush stored frames to client in batches (backend does not hold entire video)
 FRAME_STREAM_BATCH_SIZE = int(os.getenv("FRAME_STREAM_BATCH_SIZE", "4"))
 WS_PROGRESS_FRAME_INTERVAL = int(os.getenv("WS_PROGRESS_FRAME_INTERVAL", "5"))

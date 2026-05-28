@@ -196,7 +196,7 @@ def process_frame_helmet(
 
     return loop.run_in_executor(
         model_executor,
-        lambda f=frame: helmet_model.track(f, persist=True, verbose=False)
+        lambda f=frame: helmet_model.track(f, persist=True, verbose=False, tracker="bytetrack.yaml")
     )
 
 

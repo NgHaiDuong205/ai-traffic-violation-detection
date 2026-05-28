@@ -242,7 +242,7 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, isProcessing, prog
                         left, top, width, height,
                         border: `2px solid ${color}`,
                         zIndex: 10,
-                        transition: 'left 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), top 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), width 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), height 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), border-color 0.2s ease',
+                        transition: 'border-color 0.2s ease',
                       }} />
                       <div style={{
                         position: 'absolute',
@@ -255,7 +255,7 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, isProcessing, prog
                         borderRadius: '4px 4px 0 0',
                         zIndex: 11,
                         whiteSpace: 'nowrap',
-                        transition: 'left 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), top 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), background-color 0.2s ease',
+                        transition: 'background-color 0.2s ease',
                       }}>
                         {box.class_name} #{box.id} {box.conf ? `(${Math.round(box.conf * 100)}%)` : ''}
                       </div>
@@ -268,7 +268,6 @@ function DetectionViewer({ mediaFile, mediaType, isDetecting, isProcessing, prog
                             fontWeight: 'bold',
                             textShadow: '1px 1px 2px black',
                             zIndex: 12,
-                            transition: 'left 0.15s cubic-bezier(0.1, 0.8, 0.2, 1), top 0.15s cubic-bezier(0.1, 0.8, 0.2, 1)',
                          }}>
                            VIOLATION!
                          </div>

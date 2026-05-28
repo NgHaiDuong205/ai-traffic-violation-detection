@@ -64,6 +64,7 @@ class RedLightService:
                     persist=True,
                     verbose=False,
                     classes=self.vehicle_detect_classes,
+                    tracker="bytetrack.yaml",
                 ),
             )
         except Exception as exc:
