@@ -118,12 +118,13 @@ backend/
 **2. Vehicle Detection Model (best_v6.pt)**
 - Mô hình: YOLOv8
 - Chức năng: Phát hiện và tracking các loại phương tiện
-- Classes (ID: 0-4):
+- Classes (ID: 0-5):
   - 0: car (ô tô)
   - 1: bus (xe buýt)
   - 2: truck (xe tải)
   - 3: motorcycle (xe máy)
   - 4: bicycle (xe đạp)
+  - 5: person (người)
 - Đường dẫn: `ai_modules/vehicle_detect/weights/best_v6.pt`
 
 **3. Xử lý ảnh/video:**
