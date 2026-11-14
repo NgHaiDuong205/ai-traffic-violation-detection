@@ -1,0 +1,15 @@
+# Copy to data.yaml and set `path` to your dataset root (YOLO format).
+# Expected layout under `path`:
+#   train/images/, train/labels/
+#   valid/images/, valid/labels/
+#   test/images/,  test/labels/
+
+path: ../dataset  # example: relative to this training/ folder
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 2
+names:
+  - helmet
+  - no helmet
